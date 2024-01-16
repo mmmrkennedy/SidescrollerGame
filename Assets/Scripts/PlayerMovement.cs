@@ -1,35 +1,109 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
 
-    public CharacterController2D controller;
+    [SerializeField] private float speed = 8f;
+    [SerializeField] private float jumpingPower = 16f;
+    [SerializeField] private float dashingPower = 24f;
+    [SerializeField] private float dashingTime = 0.2f;
+    [SerializeField] private float dashingCooldown = 1f;
+    [SerializeField] private float dashVerticalMovementScale = 0.5f;
+    [SerializeField] private bool canDoubleJump = false;
+    [SerializeField] private float secondJumpScale = 1.6f;
 
-    float horizontalMove = 0f;
+    private float horizontal;
+    private bool isFacingRight = true;
+    private bool canDash = true;
+    private bool isDashing;
 
-    public float runSpeed = 40f;
-    bool jump = false;
-    bool dash = false;
+    [SerializeField] private Rigidbody2D rb;
+    [SerializeField] private Transform groundCheck;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private TrailRenderer tr;
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        horizontalMove = Input.GetAxisRaw("Horizontal") * runSpeed;
-
-        if (Input.GetButtonDown("Jump")){
-            jump = true;
+        if (isDashing)
+        {
+            //return;
         }
 
-        if (Input.GetButtonDown("Fire3")){
-            dash = true;
+        if (IsGrounded() && !isDashing)
+        {
+            canDash = true;
+        }
+
+        if(IsGrounded())
+        {
+            canDoubleJump = true;
+        }
+
+        horizontal = Input.GetAxisRaw("Horizontal");
+
+        if (Input.GetButtonDown("Jump") && IsGrounded())
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpingPower);
+        }
+
+        if(Input.GetButtonDown("Jump") && canDoubleJump && !IsGrounded())
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpingPower /secondJumpScale);
+            canDoubleJump = false;
+        }
+
+        if (Input.GetButtonUp("Jump") && rb.velocity.y > 0f)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
+        }
+
+        if (Input.GetButtonDown("Dash") && canDash)
+        {
+            StartCoroutine(Dash());
+        }
+
+        Flip();
+    }
+
+    private void FixedUpdate()
+    {
+        if (isDashing)
+        {
+            return;
+        }
+
+        rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
+    }
+
+    private bool IsGrounded()
+    {
+        return Physics2D.OverlapCircle(groundCheck.position, 0.2f, groundLayer);
+    }
+
+    private void Flip()
+    {
+        if (isFacingRight && horizontal < 0f || !isFacingRight && horizontal > 0f)
+        {
+            Vector3 localScale = transform.localScale;
+            isFacingRight = !isFacingRight;
+            localScale.x *= -1f;
+            transform.localScale = localScale;
         }
     }
 
-    void FixedUpdate(){
-        controller.Move(horizontalMove * Time.fixedDeltaTime, false, jump, dash);
-        jump = false;
-        dash = false;
+    private IEnumerator Dash()
+    {
+        canDash = false;
+        isDashing = true;
+        float originalGravity = rb.gravityScale;
+        rb.gravityScale = 0f;
+        rb.velocity = new Vector2(transform.localScale.x * dashingPower, rb.velocity.y * dashVerticalMovementScale);
+        tr.emitting = true;
+        yield return new WaitForSeconds(dashingTime);
+        tr.emitting = false;
+        rb.gravityScale = originalGravity;
+        isDashing = false;
+        yield return new WaitForSeconds(dashingCooldown);
     }
 }

@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class DeathBarrier : MonoBehaviour
 {
-
     public PlayerMovement player;
+    public GameObject spawn;
 
     // Update is called once per frame
     void Update()
@@ -15,9 +15,7 @@ public class DeathBarrier : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D col)
     {
-        Debug.Log("OnCollisionEnter2D");
-
-        player.transform.position = new Vector3(-39.7f,-15.8f,0f);
+        player.transform.position = spawn.transform.position;
     }
 
 }
