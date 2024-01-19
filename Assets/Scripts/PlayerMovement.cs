@@ -3,25 +3,31 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-
-    [SerializeField] private float speed = 8f;
-    [SerializeField] private float jumpingPower = 16f;
-    [SerializeField] private float dashingPower = 24f;
-    [SerializeField] private float dashingTime = 0.2f;
-    [SerializeField] private float dashingCooldown = 1f;
-    [SerializeField] private float dashVerticalMovementScale = 0.5f;
-    [SerializeField] private bool canDoubleJump = false;
-    [SerializeField] private float secondJumpScale = 1.6f;
+    public float groundSpeed = 8f;
+    public float midAirSpeed = 7f;
+    public float jumpingPower = 16f;
+    public float dashingPower = 24f;
+    public float dashingTime = 0.2f;
+    public float dashingCooldown = 1f;
+    public float dashVerticalMovementScale = 0.4f;
+    public bool canDoubleJump = false;
+    public float secondJumpScale = 1.6f;
 
     private float horizontal;
     private bool isFacingRight = true;
     private bool canDash = true;
     private bool isDashing;
+    private float speed;
 
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private TrailRenderer tr;
+
+    private void Start() 
+    {
+        speed = groundSpeed;
+    }
 
     private void Update()
     {
@@ -30,29 +36,38 @@ public class PlayerMovement : MonoBehaviour
             //return;
         }
 
-        if (IsGrounded() && !isDashing)
-        {
-            canDash = true;
-        }
-
+        
+        // Checks if the player is grounded
         if(IsGrounded())
         {
+            // If the player is not dashing, allow the player to dash
+            if(!isDashing)
+            {
+                canDash = true;
+            }
+            speed = groundSpeed;
             canDoubleJump = true;
+        
+        // If the player is in the air, change their speed to the slower air speed
+        } else {
+            speed = midAirSpeed;
         }
 
         horizontal = Input.GetAxisRaw("Horizontal");
 
-        if (Input.GetButtonDown("Jump") && IsGrounded())
+        if (Input.GetButtonDown("Jump"))
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpingPower);
+            if(IsGrounded())
+            {
+                rb.velocity = new Vector2(rb.velocity.x, jumpingPower);
+            
+            } else if (canDoubleJump) {
+                rb.velocity = new Vector2(rb.velocity.x, jumpingPower / secondJumpScale);
+                canDoubleJump = false;
+            }
         }
 
-        if(Input.GetButtonDown("Jump") && canDoubleJump && !IsGrounded())
-        {
-            rb.velocity = new Vector2(rb.velocity.x, jumpingPower /secondJumpScale);
-            canDoubleJump = false;
-        }
-
+        // Slows player on the way up after jumping when the player lets go of the jump button - Allows for a short hop instead of always doing a full jump
         if (Input.GetButtonUp("Jump") && rb.velocity.y > 0f)
         {
             rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
